@@ -16,14 +16,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-declare global {
-    interface Array<T> {
-        // Supported since Node >=11.0
-        flat(depth?: number): any
-    }
-}
-
-import { OVSXClient } from '@theia/ovsx-client/lib/ovsx-client';
+import { OVSXHttpClient, OVSXApiFilterImpl } from '@theia/ovsx-client';
 import * as chalk from 'chalk';
 import * as decompress from 'decompress';
 import { promises as fs } from 'fs';
@@ -142,13 +135,15 @@ export default async function downloadPlugins(options: DownloadPluginsOptions = 
             .map(([pluginId, url]) => ({ id: pluginId, downloadUrl: url }));
         await downloader(pluginsToDownload);
 
+        const client = new OVSXHttpClient(apiUrl, requestService);
+        const apiFilter = new OVSXApiFilterImpl(apiVersion);
         const handleDependencyList = async (dependencies: Array<string | string[]>) => {
-            const client = new OVSXClient({ apiVersion, apiUrl }, requestService);
             // De-duplicate extension ids to only download each once:
             const ids = new Set<string>(dependencies.flat());
             await parallelOrSequence(...Array.from(ids, id => async () => {
                 try {
-                    const extension = await client.getLatestCompatibleExtensionVersion(id);
+                    const { extensions } = await client.query({ extensionId: id });
+                    const extension = apiFilter.getLatestCompatibleExtension(extensions);
                     const version = extension?.version;
                     const downloadUrl = extension?.files.download;
                     if (downloadUrl) {
