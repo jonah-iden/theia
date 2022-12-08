@@ -37,6 +37,7 @@ export interface ScmInputValidator {
 
 export interface ScmInputOptions {
     placeholder?: string
+    enabled?: boolean;
     validator?: ScmInputValidator
     visible?: boolean
 }
@@ -79,6 +80,18 @@ export class ScmInput implements Disposable {
             return;
         }
         this._placeholder = placeholder;
+        this.fireDidChange();
+    }
+
+    protected _enabled = this.options.enabled;
+    get enabled(): boolean | undefined {
+        return this._enabled;
+    }
+    set enabled(enabled: boolean | undefined) {
+        if (this._enabled === enabled) {
+            return;
+        }
+        this._enabled = enabled;
         this.fireDidChange();
     }
 
